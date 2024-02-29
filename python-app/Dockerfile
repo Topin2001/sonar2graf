@@ -1,4 +1,4 @@
-FROM python:3.10.12-slim-buster
+FROM python:3.10.12-bullseye
 
 # Set the working directory in the container
 WORKDIR /app
@@ -10,7 +10,7 @@ COPY . /app
 EXPOSE 8000
 
 # Update pip
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip setuptools
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt

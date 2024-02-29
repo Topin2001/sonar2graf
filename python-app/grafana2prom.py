@@ -3,6 +3,8 @@
 import requests
 from prometheus_client import start_http_server, Gauge
 import time
+import os
+from dotenv import load_dotenv
 
 class SonarQubeAPI:
     def __init__(self, url, token):
@@ -39,9 +41,14 @@ class SonarQubeAPI:
         except requests.exceptions.RequestException as err:
             print(f"Error: {err}")
             return False
-       
-sonar = SonarQubeAPI('http://host.docker.internal:9000', 'squ_316387f40b52b060cca85d3048cd28f1d17f7894') #Mettre l'adresse IP du server sonarqube
-#sonar = SonarQubeAPI('http://localhost:9000', 'squ_316387f40b52b060cca85d3048cd28f1d17f7894')  # For local testing outside of Docker
+
+load_dotenv()
+
+sonar_key = os.getenv('SONAR_KEY')
+sonar_url = os.getenv('SONAR_URL')
+http_port = int(os.getenv('HTTP_PORT'))
+
+sonar = SonarQubeAPI(sonar_url, sonar_key) #Mettre l'adresse IP du server sonarqube
 
 
 # Check connection to SonarQube API
@@ -77,7 +84,7 @@ def sonar_blocker_gauge(project_list):
 
 
 # Start up the server to expose the metrics.
-start_http_server(8000)
+start_http_server(http_port)
 while True:
     project_list = sonar.get_project_list()
     sonar_error_gauge(project_list)
