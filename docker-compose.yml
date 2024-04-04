@@ -28,6 +28,6 @@ services:
       - ./python-app:/app
     ports:
       - "8000:8000"
-    command: ["python", "grafana2prom.py"]
+    command: ["./start.sh"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
