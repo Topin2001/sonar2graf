@@ -8,9 +8,10 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus:/etc/prometheus
+      - prometheus-storage:/prometheus
     environment:
       - TZ=Europe/Paris
-    restart: always
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana
@@ -19,9 +20,10 @@ services:
       - "3000:3000"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-storage:/var/lib/grafana
     environment:
       - GF_LOG_LEVEL=${GF_LOG_LEVEL}
-    restart: always
+    restart: unless-stopped
 
   python:
     build: ./python-app
@@ -32,3 +34,8 @@ services:
     command: ["./start.sh"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  grafana-storage: {}
+  prometheus-storage: {}
