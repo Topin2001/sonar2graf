@@ -56,6 +56,7 @@ load_dotenv()
 
 sonar_key = os.getenv('SONAR_KEY')
 sonar_url = os.getenv('SONAR_URL')
+filter = os.getenv('FILTER')
 http_port = int(os.getenv('HTTP_PORT'))
 max_projects = int(os.getenv('MAX_PROJECTS'))
 
@@ -90,9 +91,9 @@ def sonar_error_gauge(project_list):
 start_http_server(http_port)
 while True:
     project_list = sonar.get_project_list()
-    project_list = [i for i in project_list if "ISIS_" in i['key']]
+    project_list = [i for i in project_list if filter in i['key']]
     if len(project_list) > max_projects:
-        print('Too many projects, risk of overloading SonarQube ! \n By default max 100 projects, can be update in .env file.')
+        print('Too many projects, risk of overloading SonarQube !\nBy default max 100 projects, can be update in .env file.')
         exit(1)
     sonar_error_gauge(project_list)
     time.sleep(3600)
