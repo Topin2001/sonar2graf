@@ -66,6 +66,11 @@ def sonar_error_gauge(project_list):
             sonarqube_project_errors_total.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(project_issues['total'])
             blocker_count = sum(1 for issue in project_issues['issues'] if issue['severity'] == 'BLOCKER')
             sonarqube_project_errors_blocker.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(blocker_count)
+            try :
+                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(0 if project_branch['status']['qualityGateStatus'] == "OK" else 1)
+            except KeyError :
+                logging.debug(f'The branch {project_branch_name} of {project_name} has not been implemented in SonarQube')
+                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(1)
 
 #Retreive arguments given while starting the script
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -122,8 +127,16 @@ logging.debug('Authentification to SonarQube API done.')
 
 
 #Create the Prometheus gauge
-sonarqube_project_errors_total = Gauge('sonarqube_project_errors_total', 'SonarQube project errors', ['project_key', 'project_name', 'project_branch_name'])
-sonarqube_project_errors_blocker = Gauge('sonarqube_project_errors_blocker', 'SonarQube project errors blocker', ['project_key', 'project_name', 'project_branch_name'])
+sonarqube_project_errors_total = Gauge('sonarqube_project_errors_total',
+                                       'SonarQube project errors total',
+                                       ['project_key', 'project_name', 'project_branch_name'])
+sonarqube_project_errors_blocker = Gauge('sonarqube_project_errors_blocker',
+                                         'SonarQube project errors blocker',
+                                         ['project_key', 'project_name', 'project_branch_name'])
+sonarqube_project_GC_status = Gauge('sonarqube_project_GC_status',
+                                    'SonarQube project GC status, 0 if OK, 1 otherwise',
+                                    ['project_key', 'project_name', 'project_branch_name'])
+
 
 # Start up the server to expose the metrics.
 logging.info(f'Start http server on port {http_port}')
