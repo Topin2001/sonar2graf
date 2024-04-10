@@ -29,10 +29,14 @@ class SonarQubeAPI:
                 response.extend(self.get_project_from_page(i)['components'])
         return response
     
-    def get_project_issues(self, project_key):
-        response = requests.get(f'{self.url}/api/issues/search?componentKeys={project_key}', auth=self.auth, verify=cert_file)
-        return response.json()
+    def get_project_branch_list(self, project_key):
+        response = requests.get(f'{self.url}/api/project_branches/list?project={project_key}', auth=self.auth, verify=cert_file)
+        return response.json()['branches']
     
+    def get_project_banch_issues(self, project_key, branch):
+        response = requests.get(f'{self.url}/api/issues/search?componentKeys={project_key}&branch={branch}', auth=self.auth, verify=cert_file)
+        return response.json()
+
     def check_connection(self):
        try:
            response = requests.get(f'{self.url}/api/system/status', auth=self.auth, verify=cert_file)
@@ -55,10 +59,13 @@ def sonar_error_gauge(project_list):
     for project in project_list:
         project_key = project['key']
         project_name = project['name']
-        project_issues = sonar.get_project_issues(project_key)
-        sonarqube_project_errors_total.labels(project_key=project_key, project_name=project_name).set(project_issues['total'])
-        blocker_count = sum(1 for issue in project_issues['issues'] if issue['severity'] == 'BLOCKER')
-        sonarqube_project_errors_blocker.labels(project_key=project_key, project_name=project_name).set(blocker_count)
+        project_branchs = sonar.get_project_branch_list(project_key)
+        for project_branch in project_branchs :
+            project_branch_name = project_branch['name']
+            project_issues = sonar.get_project_banch_issues(project_key, project_branch_name)
+            sonarqube_project_errors_total.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(project_issues['total'])
+            blocker_count = sum(1 for issue in project_issues['issues'] if issue['severity'] == 'BLOCKER')
+            sonarqube_project_errors_blocker.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(blocker_count)
 
 #Retreive arguments given while starting the script
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -115,11 +122,11 @@ logging.debug('Authentification to SonarQube API done.')
 
 
 #Create the Prometheus gauge
-sonarqube_project_errors_total = Gauge('sonarqube_project_errors_total', 'SonarQube project errors', ['project_key', 'project_name'])
-sonarqube_project_errors_blocker = Gauge('sonarqube_project_errors_blocker', 'SonarQube project errors blocker', ['project_key', 'project_name'])
+sonarqube_project_errors_total = Gauge('sonarqube_project_errors_total', 'SonarQube project errors', ['project_key', 'project_name', 'project_branch_name'])
+sonarqube_project_errors_blocker = Gauge('sonarqube_project_errors_blocker', 'SonarQube project errors blocker', ['project_key', 'project_name', 'project_branch_name'])
 
 # Start up the server to expose the metrics.
-logging.debug(f'Start http server on port {http_port}')
+logging.info(f'Start http server on port {http_port}')
 start_http_server(http_port)
 while True:
     logging.debug('Genrating project list')
@@ -130,6 +137,6 @@ while True:
         logging.critical(f'Too many projects ({len(project_list)}), risk of overloading SonarQube !\nBy default max 100 projects, can be update in .env file.')
         exit(1)
     sonar_error_gauge(project_list)
-    logging.debug('All done, waiting 1h before next scrape.')
+    logging.info('All done, waiting 1h before next scrape.')
     time.sleep(3600)
     
