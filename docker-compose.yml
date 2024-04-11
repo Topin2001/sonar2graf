@@ -11,6 +11,8 @@ services:
       - prometheus-storage:/prometheus
     environment:
       - TZ=Europe/Paris
+    depends_on:
+      - python
     restart: unless-stopped
 
   grafana:

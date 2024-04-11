@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -42,6 +42,13 @@
             "inspect": false,
             "minWidth": 150
           },
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "View in sonarqube",
+              "url": "https://sonarqube.cnes.fr/dashboard?id=${__data.fields.project_key}&branch=${__data.fields.project_branch_name}"
+            }
+          ],
           "mappings": [
             {
               "options": {
@@ -72,7 +79,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 24,
         "x": 0,
         "y": 0
@@ -128,7 +135,7 @@
               "__name__": true,
               "instance": true,
               "job": true,
-              "project_key": true
+              "project_key": false
             },
             "includeByName": {},
             "indexByName": {
@@ -194,7 +201,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 7
       },
       "id": 1,
       "options": {
@@ -266,7 +273,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 21
       },
       "id": 2,
       "options": {
@@ -315,13 +322,13 @@
     "list": []
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "ISIS Project",
   "uid": "ce547d12-51f3-46ce-8bd9-897abbe9d171",
-  "version": 13,
+  "version": 2,
   "weekStart": ""
 }
