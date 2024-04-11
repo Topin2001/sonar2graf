@@ -1,4 +1,4 @@
-FROM python:3.10.12-bullseye
+FROM python:3.12.3-bullseye
 
 # Set the working directory in the container
 WORKDIR /app
