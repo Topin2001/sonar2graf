@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 
 import requests
 import time
@@ -33,9 +33,9 @@ class SonarQubeAPI:
         response = requests.get(f'{self.url}/api/project_branches/list?project={project_key}', auth=self.auth, verify=cert_file)
         return response.json()['branches']
     
-    def get_project_banch_issues(self, project_key, branch):
-        response = requests.get(f'{self.url}/api/issues/search?componentKeys={project_key}&branch={branch}', auth=self.auth, verify=cert_file)
-        return response.json()
+    def get_project_branch_issues(self, project_key, branch, severities):
+        response = requests.get(f'{self.url}/api/issues/search?componentKeys={project_key}&branch={branch}&severities={severities}&ps=1&resolved=false', auth=self.auth, verify=cert_file)
+        return response.json()['total']
 
     def check_connection(self):
        try:
@@ -58,20 +58,28 @@ class SonarQubeAPI:
 def sonar_error_gauge(project_list):
     for project in project_list:
         project_key = project['key']
+        project_levels = project_key.split("_")
+        project_levels = project_levels[:8] + ['null']*(8 - len(project_levels))
         project_name = project['name']
         project_branchs = sonar.get_project_branch_list(project_key)
         for project_branch in project_branchs :
             project_branch_name = project_branch['name']
-            project_issues = sonar.get_project_banch_issues(project_key, project_branch_name)
-            sonarqube_project_errors_total.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(project_issues['total'])
-            blocker_count = sum(1 for issue in project_issues['issues'] if issue['severity'] == 'BLOCKER')
-            sonarqube_project_errors_blocker.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(blocker_count)
+            project_issues_info = sonar.get_project_branch_issues(project_key, project_branch_name, 'INFO')
+            sonarqube_project_errors_info.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(project_issues_info)
+            project_issues_minor = sonar.get_project_branch_issues(project_key, project_branch_name, 'MINOR')
+            sonarqube_project_errors_minor.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(project_issues_minor)
+            project_issues_major = sonar.get_project_branch_issues(project_key, project_branch_name, 'MAJOR')
+            sonarqube_project_errors_major.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(project_issues_major)
+            project_issues_critical = sonar.get_project_branch_issues(project_key, project_branch_name, 'CRITICAL')
+            sonarqube_project_errors_critical.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(project_issues_critical)
+            project_issues_blocker = sonar.get_project_branch_issues(project_key, project_branch_name, 'BLOCKER')
+            sonarqube_project_errors_blocker.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(project_issues_blocker)
             try :
-                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(0 if project_branch['status']['qualityGateStatus'] == "OK" else 1)
+                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(0 if project_branch['status']['qualityGateStatus'] == "OK" else 1)
             except KeyError :
                 logging.debug(f'The branch {project_branch_name} of {project_name} has not been implemented in SonarQube')
-                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name).set(1)
-
+                sonarqube_project_GC_status.labels(project_key=project_key, project_name=project_name, project_branch_name=project_branch_name, project_level_0=project_levels[0], project_level_1=project_levels[1], project_level_2=project_levels[2], project_level_3=project_levels[3], project_level_4=project_levels[4], project_level_5=project_levels[5], project_level_6=project_levels[6], project_level_7=project_levels[7]).set(1)
+            
 #Retreive arguments given while starting the script
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description='Prometheus collector for a sonarqube server')
@@ -127,16 +135,24 @@ logging.debug('Authentification to SonarQube API done.')
 
 
 #Create the Prometheus gauge
-sonarqube_project_errors_total = Gauge('sonarqube_project_errors_total',
-                                       'SonarQube project errors total',
-                                       ['project_key', 'project_name', 'project_branch_name'])
+sonarqube_project_errors_info = Gauge('sonarqube_project_errors_info',
+                                       'SonarQube project info errors',
+                                       ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
+sonarqube_project_errors_minor = Gauge('sonarqube_project_errors_minor',
+                                       'SonarQube project minor errors',
+                                       ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
+sonarqube_project_errors_major = Gauge('sonarqube_project_errors_major',
+                                       'SonarQube project major errors',
+                                       ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
+sonarqube_project_errors_critical = Gauge('sonarqube_project_errors_critical',
+                                       'SonarQube project critical errors',
+                                       ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
 sonarqube_project_errors_blocker = Gauge('sonarqube_project_errors_blocker',
-                                         'SonarQube project errors blocker',
-                                         ['project_key', 'project_name', 'project_branch_name'])
+                                         'SonarQube project blocker errors',
+                                         ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
 sonarqube_project_GC_status = Gauge('sonarqube_project_GC_status',
                                     'SonarQube project GC status, 0 if OK, 1 otherwise',
-                                    ['project_key', 'project_name', 'project_branch_name'])
-
+                                    ['project_key', 'project_name', 'project_branch_name', 'project_level_0', 'project_level_1', 'project_level_2', 'project_level_3', 'project_level_4', 'project_level_5', 'project_level_6', 'project_level_7'])
 
 # Start up the server to expose the metrics.
 logging.info(f'Start http server on port {http_port}')
